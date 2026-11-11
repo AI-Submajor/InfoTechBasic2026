@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>発表会 相互レビュー結果</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f2f6f5;
+  color: #173b43;
+  font: 15px/1.7 system-ui, sans-serif;
+}
+
+header {
+  background: #173b43;
+  color: white;
+  padding: 24px;
+}
+
+main {
+  max-width: 1100px;
+  margin: auto;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 25px;
+  margin: 0;
+}
+
+h2 {
+  font-size: 19px;
+  margin: 0 0 12px;
+}
+
+.card {
+  background: white;
+  border: 1px solid #dce5e6;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+select,
+button {
+  font: inherit;
+  padding: 9px 12px;
+  border: 1px solid #bcced0;
+  border-radius: 6px;
+  background: white;
+  max-width: 100%;
+}
+
+button {
+  background: #087e83;
+  color: white;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+
+.note {
+  color: #61747d;
+  font-size: 12px;
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 60px 0 210px;
+  font-size: 12px;
+}
+
+.barrow {
+  display: grid;
+  grid-template-columns: 200px 1fr 50px;
+  gap: 10px;
+  align-items: center;
+  margin: 14px 0;
+}
+
+.team {
+  overflow-wrap: anywhere;
+}
+
+.track {
+  height: 26px;
+  background: #edf3f2;
+  border-radius: 4px;
+}
+
+.bar {
+  height: 100%;
+  background: #14878b;
+  border-radius: 4px;
+}
+
+.value {
+  text-align: right;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+
+.tablewrap {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+td,
+th {
+  padding: 12px;
+  text-align: right;
+  border-bottom: 1px solid #dce5e6;
+}
+
+td:first-child,
+th:first-child {
+  text-align: left;
+}
+
+th {
+  background: #f4f8f7;
+  font-size: 12px;
+}
+
+.error {
+  color: #a52c25;
+}
+
+#details ol {
+  margin: 0;
+  padding-left: 2em;
+}
+
+#details li {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px 4px;
+  border-bottom: 1px solid #e2e9e9;
+}
+
+#details li:last-child {
+  border-bottom: none;
+}
+
+#details li::marker {
+  font-weight: bold;
+  color: #087e83;
+}
+
+#status {
+  white-space: pre-line;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+  main {
+    padding: 12px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .barrow {
+    grid-template-columns: 110px 1fr 45px;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .axis {
+    margin-left: 116px;
+    margin-right: 51px;
+  }
+
+  h1 {
+    font-size: 21px;
+  }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>発表会 相互レビュー結果</h1>
+</header>
+
+<main>
+  <section class="card toolbar">
+    <label for="event">発表会</label>
+    <select id="event" disabled></select>
+
+    <button id="refresh">結果を更新</button>
+    <button id="csv" disabled>集計CSVを保存</button>
+  </section>
+
+  <p id="status" role="status" aria-live="polite">
+    読み込み中…
+  </p>
+
+  <div id="results" hidden>
+    <section class="card">
+      <h2>合計点の平均ランキング</h2>
+
+      <p class="note">
+        16点満点・高い順。同点は同順位です。
+        表示は小数第2位まで、順位は丸め前の値で判定します。
+      </p>
+
+      <p id="summary"></p>
+
+      <div class="axis" aria-hidden="true">
+        <span>0</span>
+        <span>4</span>
+        <span>8</span>
+        <span>12</span>
+        <span>16</span>
+      </div>
+
+      <div
+        id="chart"
+        role="list"
+        aria-label="チーム別合計点平均"
+      ></div>
+    </section>
+
+    <section class="card">
+      <h2>観点別の平均点</h2>
+
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">チーム</th>
+              <th scope="col">有効件数</th>
+              <th scope="col">観点1<br>デザイン思考</th>
+              <th scope="col">観点2<br>データ思考</th>
+              <th scope="col">観点3<br>論理思考</th>
+              <th scope="col">観点4<br>総合</th>
+              <th scope="col">合計点平均</th>
+            </tr>
+          </thead>
+
+          <tbody id="table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>こうすればもっと良くなる具体的な改善点</h2>
+
+      <label for="team">チームを選択 </label>
+      <select id="team"></select>
+
+      <p id="detailcount" class="note"></p>
+
+      <div id="details"></div>
+    </section>
+
+    <details class="card">
+      <summary>評価基準・集計方法</summary>
+
+      <div id="rubric"></div>
+
+      <p>
+        1: 全くそう思わない<br>
+        2: あまりそう思わない<br>
+        3: どちらかというとそう思う<br>
+        4: 非常にそう思う
+      </p>
+
+      <p class="note">
+        所属チームとレビュー対象チームが同じ回答は、
+        点数・評価件数・コメントのすべてから除外します。
+      </p>
+
+      <p class="note">
+        点数は4観点すべてが1〜4の回答を集計します。
+        各観点の平均は4点満点、各回答の合計点の平均は
+        16点満点です。全回答の合計点平均は、
+        有効回答件数で加重した平均です。
+      </p>
+
+      <p class="note">
+        改善コメントは投稿順に表示します。
+        空のコメントは表示しません。
+        他チームからのコメントは、点数に欠損があっても表示します。
+        このため、有効な評価件数とコメント件数が異なる場合があります。
+      </p>
+
+      <p class="note">
+        自己評価以外は1行を1件として扱い、
+        重複投稿の排除は行いません。
+        教員の意見による加点は行いません。
+      </p>
+    </details>
+  </div>
+
+  <p class="note">
+    氏名・メールアドレスの列は表示しません。
+    改善コメントは原文で表示します。
+    発表会・チームは投稿結果から自動取得します。
+  </p>
+</main>
+
+<script>
+/*
+ * ============================================================
+ * GASのWebアプリURLを設定する場所
+ *
+ * 次の文字列を、ご自身の /exec URL に置き換えてください。
+ * ============================================================
+ */
+const GAS_API_URL ='https://script.google.com/macros/s/AKfycbz5Fq5omSkVlFYvedFLeOgV8hONQjMLVNx04LitlT0oftAf4DWpDiIY9vuXjKeowm3TcA/exec'
+  'ここにGASのWebアプリURLを貼り付け';
+
+
+const $ = id => document.getElementById(id);
+
+const criteria = [
+  [
+    'デザイン思考',
+    'ペルソナからの要件整理で現実感がありましたか?'
+  ],
+  [
+    'データ思考',
+    'ブランドの絞り込みなどでデータ分析はしっかりしていましたか?'
+  ],
+  [
+    '論理思考',
+    '商品の選択結果と根拠の繋がりの納得感はありましたか?'
+  ],
+  [
+    '総合',
+    'POPでの訴求は魅力的と感じましたか?'
+  ]
+];
+
+let data;
+let selected;
+
+const fmt = number =>
+  number == null ? '—' : number.toFixed(2);
+
+
+function el(tag, text, className) {
+  const node = document.createElement(tag);
+
+  if (text != null) {
+    node.textContent = text;
+  }
+
+  if (className) {
+    node.className = className;
+  }
+
+  return node;
+}
+
+
+function option(value) {
+  const node = el('option', value);
+  node.value = value;
+  return node;
+}
+
+
+/*
+ * JSONP方式でGAS APIを呼び出す
+ */
+function callApi() {
+  return new Promise((resolve, reject) => {
+    let url;
+
+    try {
+      url = new URL(GAS_API_URL);
+
+      if (
+        url.protocol !== 'https:' ||
+        url.hostname !== 'script.google.com' ||
+        !/^\/macros\/s\/[^/]+\/exec$/.test(url.pathname)
+      ) {
+        throw Error();
+      }
+    } catch (_) {
+      reject(
+        Error(
+          'index.html の GAS_API_URL に、' +
+          'GASの /exec URL を設定してください。'
+        )
+      );
+      return;
+    }
+
+    const callbackName =
+      'reviewCallback_' +
+      Date.now() +
+      '_' +
+      Math.random().toString(36).slice(2);
+
+    const script = document.createElement('script');
+
+    let settled = false;
+    let timer;
+
+    function finish(error, result) {
+      if (settled) return;
+
+      settled = true;
+
+      clearTimeout(timer);
+      script.remove();
+      delete window[callbackName];
+
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result);
+      }
+    }
+
+    window[callbackName] = result => {
+      if (
+        !result ||
+        result.ok !== true ||
+        !Array.isArray(result.events)
+      ) {
+        finish(
+          Error(
+            result?.error ||
+            'APIの応答が正しくありません。'
+          )
+        );
+        return;
+      }
+
+      finish(null, result);
+    };
+
+    script.onerror = () => {
+      finish(
+        Error(
+          'GASに接続できません。' +
+          'URL・公開範囲・ネット接続を確認してください。'
+        )
+      );
+    };
+
+    timer = setTimeout(() => {
+      finish(
+        Error(
+          'GASの応答がタイムアウトしました。' +
+          '公開範囲を確認し、再度更新してください。'
+        )
+      );
+    }, 30000);
+
+    url.searchParams.set('action', 'reviews');
+    url.searchParams.set('callback', callbackName);
+
+    script.src = url.href;
+    document.head.append(script);
+  });
+}
+
+
+/*
+ * データ更新
+ */
+async function load() {
+  $('results').hidden = true;
+  $('csv').disabled = true;
+  $('event').disabled = true;
+  $('refresh').disabled = true;
+
+  $('status').className = '';
+  $('status').textContent = '読み込み中…';
+
+  try {
+    accept(await callApi());
+  } catch (error) {
+    fail(error);
+  }
+}
+
+
+function accept(result) {
+  const previousEvent = $('event').value;
+
+  data = result;
+
+  $('event').replaceChildren(
+    ...data.events.map(event => option(event.name))
+  );
+
+  if (
+    data.events.some(event =>
+      event.name === previousEvent
+    )
+  ) {
+    $('event').value = previousEvent;
+  }
+
+  $('event').disabled = !data.events.length;
+  $('refresh').disabled = false;
+
+  render();
+}
+
+
+function fail(error) {
+  $('results').hidden = true;
+  $('csv').disabled = true;
+
+  $('status').className = 'error';
+  $('status').textContent =
+    '取得に失敗しました。' +
+    (error.message || error);
+
+  $('refresh').disabled = false;
+}
+
+
+/*
+ * 発表会全体の結果を表示
+ */
+function render() {
+  selected = data.events.find(event =>
+    event.name === $('event').value
+  );
+
+  $('results').hidden = !selected;
+  $('csv').disabled = !selected;
+
+  const extra = data.unassigned
+    ? ` 発表会名のない${data.unassigned}件を除外しました。`
+    : '';
+
+  if (!selected) {
+    $('status').textContent =
+      '投稿がありません。' + extra;
+    return;
+  }
+
+  $('status').textContent =
+    `${selected.name}：投稿${selected.rows}件、` +
+    `除外${selected.invalid}件` +
+    `（うち自己評価 ${selected.selfExcluded || 0}件）。` +
+    extra +
+    '\n取得：' +
+    new Date(data.updatedAt).toLocaleString(
+      'ja-JP',
+      { timeZone: 'Asia/Tokyo' }
+    ) +
+    ' JST';
+
+  const count = selected.teams.reduce(
+    (sum, team) => sum + team.count,
+    0
+  );
+
+  const average = count
+    ? selected.teams.reduce(
+        (sum, team) =>
+          sum + (team.totalMean || 0) * team.count,
+        0
+      ) / count
+    : null;
+
+  $('summary').textContent =
+    `${selected.teams.length}チーム ／ ` +
+    `有効${count}件 ／ ` +
+    `全回答の合計点平均 ${fmt(average)} / 16`;
+
+  $('chart').replaceChildren();
+  $('table').replaceChildren();
+
+  let previousScore = null;
+  let rank = 0;
+
+  selected.teams.forEach((team, index) => {
+    if (team.totalMean !== previousScore) {
+      rank = index + 1;
+    }
+
+    previousScore = team.totalMean;
+
+    const row = el('div', null, 'barrow');
+    row.setAttribute('role', 'listitem');
+
+    const track = el('div', null, 'track');
+    const bar = el('div', null, 'bar');
+
+    bar.style.width =
+      (team.totalMean || 0) / 16 * 100 + '%';
+
+    track.append(bar);
+    track.setAttribute('aria-hidden', 'true');
+
+    row.append(
+      el(
+        'span',
+        (team.count ? rank + '. ' : '— ') + team.name,
+        'team'
+      ),
+      track,
+      el('span', fmt(team.totalMean), 'value')
+    );
+
+    $('chart').append(row);
+
+    const tableRow = el('tr');
+
+    [
+      team.name,
+      team.count,
+      ...team.means.map(fmt),
+      fmt(team.totalMean)
+    ].forEach(value => {
+      tableRow.append(el('td', value));
+    });
+
+    $('table').append(tableRow);
+  });
+
+  const previousTeam = $('team').value;
+
+  $('team').replaceChildren(
+    ...selected.teams.map(team => option(team.name))
+  );
+
+  if (
+    selected.teams.some(team =>
+      team.name === previousTeam
+    )
+  ) {
+    $('team').value = previousTeam;
+  }
+
+  detail();
+}
+
+
+/*
+ * 選択したチームの改善コメントを番号付きで表示
+ */
+function detail() {
+  const team = selected.teams.find(team =>
+    team.name === $('team').value
+  );
+
+  $('details').replaceChildren();
+
+  if (!team) {
+    $('detailcount').textContent =
+      '対象チームがありません。';
+    return;
+  }
+
+  const comments = team.comments || [];
+
+  $('detailcount').textContent =
+    `有効な評価 ${team.count}件 ／ ` +
+    `除外 ${team.invalid}件` +
+    `（うち自己評価 ${team.selfExcluded || 0}件）／ ` +
+    `改善コメント ${comments.length}件`;
+
+  if (!comments.length) {
+    $('details').append(
+      el('p', '改善コメントはありません。')
+    );
+    return;
+  }
+
+  const list = el('ol');
+
+  comments.forEach(comment => {
+    // 投稿内容はHTMLとして解釈せず、文字列として表示
+    list.append(el('li', comment));
+  });
+
+  $('details').append(list);
+}
+
+
+/*
+ * 集計値をCSVで保存
+ */
+function downloadCsv() {
+  const quote = value => {
+    let text = String(value);
+
+    // 表計算ソフトでの数式解釈を抑制
+    if (/^[=+\-@\t\r]/.test(text)) {
+      text = "'" + text;
+    }
+
+    return '"' + text.replace(/"/g, '""') + '"';
+  };
+
+  const rows = [
+    [
+      '発表会',
+      'チーム',
+      '有効件数',
+      '除外件数',
+      'うち自己評価',
+      '観点1',
+      '観点2',
+      '観点3',
+      '観点4',
+      '合計点平均'
+    ],
+
+    ...selected.teams.map(team => [
+      selected.name,
+      team.name,
+      team.count,
+      team.invalid,
+      team.selfExcluded || 0,
+      ...team.means.map(fmt),
+      fmt(team.totalMean)
+    ])
+  ];
+
+  const csv =
+    '\ufeff' +
+    rows
+      .map(row => row.map(quote).join(','))
+      .join('\r\n');
+
+  const url = URL.createObjectURL(
+    new Blob(
+      [csv],
+      { type: 'text/csv;charset=utf-8' }
+    )
+  );
+
+  const link = el('a');
+  link.href = url;
+  link.download = '相互レビュー集計.csv';
+  link.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+
+/*
+ * 評価基準を表示
+ */
+criteria.forEach((criterion, index) => {
+  $('rubric').append(
+    el(
+      'p',
+      `観点${index + 1}（${criterion[0]}）：` +
+      criterion[1]
+    )
+  );
+});
+
+
+$('refresh').onclick = load;
+$('event').onchange = render;
+$('team').onchange = detail;
+$('csv').onclick = downloadCsv;
+
+load();
+</script>
+</body>
+</html>
